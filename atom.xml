@@ -1,25 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
 
-  <title><![CDATA[Hello World]]></title>
-  <link href="http://yindashan.github.io/atom.xml" rel="self"/>
-  <link href="http://yindashan.github.io/"/>
-  <updated>2014-07-12T10:20:22+08:00</updated>
-  <id>http://yindashan.github.io/</id>
+  <title><![CDATA[My Octopress Blog]]></title>
+  <link href="http://yoursite.com/atom.xml" rel="self"/>
+  <link href="http://yoursite.com/"/>
+  <updated>2014-07-12T10:20:21+08:00</updated>
+  <id>http://yoursite.com/</id>
   <author>
-    <name><![CDATA[yindashan]]></name>
+    <name><![CDATA[Your Name]]></name>
     
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
-  
-  <entry>
-    <title type="html"><![CDATA[Hello World]]></title>
-    <link href="http://yindashan.github.io/blog/2014/07/11/hello-world/"/>
-    <updated>2014-07-11T23:14:50+08:00</updated>
-    <id>http://yindashan.github.io/blog/2014/07/11/hello-world</id>
-    <content type="html"><![CDATA[
-]]></content>
-  </entry>
   
 </feed>
