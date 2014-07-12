@@ -4,7 +4,7 @@
   <title><![CDATA[Hello World]]></title>
   <link href="http://yindashan.github.io/atom.xml" rel="self"/>
   <link href="http://yindashan.github.io/"/>
-  <updated>2014-07-12T14:44:25+08:00</updated>
+  <updated>2014-07-12T15:25:04+08:00</updated>
   <id>http://yindashan.github.io/</id>
   <author>
     <name><![CDATA[yindashan]]></name>
@@ -28,49 +28,59 @@
 
 <p>安装rbenv</p>
 
-<p>1
-2
-3
-4
-5
-6
-7
-brew update
-brew install rbenv
-brew install ruby-build</p>
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>brew update
+</span><span class='line'>brew install rbenv
+</span><span class='line'>brew install ruby-build
+</span><span class='line'>
+</span><span class='line'>rbenv install 1.9.3-p0
+</span><span class='line'>rbenv local 1.9.3-p0
+</span><span class='line'>rbenv rehash</span></code></pre></td></tr></table></div></figure>
 
-<p>rbenv install 1.9.3-p0
-rbenv local 1.9.3-p0
-rbenv rehash
-你有可能需要安装老版本的GCC编译器才能顺利安装Ruby 1.9.3:</p>
 
-<p>1
-2
-brew tap homebrew/dupes
-brew install apple-gcc42
-安装Octopress</p>
+<p>你有可能需要安装老版本的GCC编译器才能顺利安装Ruby 1.9.3:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>brew tap homebrew/dupes
+</span><span class='line'>brew install apple-gcc42</span></code></pre></td></tr></table></div></figure>
+
+
+<p>安装Octopress</p>
 
 <p>首先从github上将源码clone下来：</p>
 
-<p>1
-2
-3
-git clone git://github.com/imathis/octopress.git octopress
-cd octopress    # If you use RVM, You&rsquo;ll be asked if you trust the .rvmrc file (say yes).
-ruby &mdash;version  # Should report Ruby 1.9.2
-然后安装依赖:</p>
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>git clone git://github.com/imathis/octopress.git octopress
+</span><span class='line'>cd octopress    # If you use RVM, You'll be asked if you trust the .rvmrc file (say yes).
+</span><span class='line'>ruby --version  # Should report Ruby 1.9.2</span></code></pre></td></tr></table></div></figure>
 
-<p>1
-2
-3
-gem install bundler
-rbenv rehash    # If you use rbenv, rehash to be able to run the bundle command
-bundle install
-最后安装Octopress</p>
 
-<p>1
-rake install
-配置</p>
+<p>然后安装依赖:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>gem install bundler
+</span><span class='line'>rbenv rehash    # If you use rbenv, rehash to be able to run the bundle command
+</span><span class='line'>bundle install</span></code></pre></td></tr></table></div></figure>
+
+
+<p>最后安装Octopress</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>rake install</span></code></pre></td></tr></table></div></figure>
+
+
+<p>配置</p>
 
 <p>安装好之后可以简单配置一下：</p>
 
@@ -84,31 +94,38 @@ rake install
 
 <p>然后就可以写博客啦～ 写博客主要是用以下几个命令，这里有详细介绍：</p>
 
-<p>rake new_post[‘article name’] 生成博文框架，然后修改生成的文件即可
-rake generate 生成静态文件
-rake watch 检测文件变化，实时生成新内容
-rake preview 在本机4000端口生成访问内容
-rake deploy 发布文件
-博文是采用markdown语法，另外增加了一些扩充的插件，markdown的介绍文章网上可以搜到很多，比如这个。</p>
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>rake new_post[‘article name’] 生成博文框架，然后修改生成的文件即可
+</span><span class='line'>rake generate 生成静态文件
+</span><span class='line'>rake watch 检测文件变化，实时生成新内容
+</span><span class='line'>rake preview 在本机4000端口生成访问内容
+</span><span class='line'>rake deploy 发布文件</span></code></pre></td></tr></table></div></figure>
+
+
+<p>博文是采用markdown语法，另外增加了一些扩充的插件，markdown的介绍文章网上可以搜到很多，比如这个。</p>
 
 <p>高级配置</p>
 
 <p>我主要介绍一下如何配置评论和分享到微博功能。步骤如下：</p>
 
 <p>在<em>config.yml中增加一项： weibo_share: true
-修改 source/</em>includes/post/sharing.html ，增加：
-1
-2
-3
-4
-  // 下面的大括号是全角的，如果复制，请自行改成半角
- ｛% if site.weibo_share %｝</p>
+修改 source/</em>includes/post/sharing.html ，增加：</p>
 
-<pre><code> ｛% include post/weibo.html %｝
-</code></pre>
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>  // 下面的大括号是全角的，如果复制，请自行改成半角
+</span><span class='line'> ｛% if site.weibo_share %｝
+</span><span class='line'>     ｛% include post/weibo.html %｝
+</span><span class='line'> ｛% endif %｝</span></code></pre></td></tr></table></div></figure>
 
-<p> ｛% endif %｝
-增加文件：source/<em>includes/post/weibo.html
+
+<p>增加文件：source/<em>includes/post/weibo.html
 访问 <a href="http://www.jiathis.com/">http://www.jiathis.com/</a> ，获取分享的代码
 访问 <a href="http://uyan.cc/">http://uyan.cc/</a> ，获得评论的代码
 将上面2步的代码都加入到weibo.html中即可

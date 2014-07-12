@@ -4,7 +4,7 @@
   <title><![CDATA[Category: 测试 | Hello World]]></title>
   <link href="http://yindashan.github.io/blog/categories/ce-shi/atom.xml" rel="self"/>
   <link href="http://yindashan.github.io/"/>
-  <updated>2014-07-12T14:44:25+08:00</updated>
+  <updated>2014-07-12T15:25:04+08:00</updated>
   <id>http://yindashan.github.io/</id>
   <author>
     <name><![CDATA[yindashan]]></name>
@@ -28,13 +28,7 @@
 
 <p>安装rbenv</p>
 
-<p>1
-2
-3
-4
-5
-6
-7
+<p>```
 brew update
 brew install rbenv
 brew install ruby-build</p>
@@ -42,34 +36,34 @@ brew install ruby-build</p>
 <p>rbenv install 1.9.3-p0
 rbenv local 1.9.3-p0
 rbenv rehash
+```
 你有可能需要安装老版本的GCC编译器才能顺利安装Ruby 1.9.3:</p>
 
-<p>1
-2
+<p><code>
 brew tap homebrew/dupes
 brew install apple-gcc42
+</code>
 安装Octopress</p>
 
 <p>首先从github上将源码clone下来：</p>
 
-<p>1
-2
-3
+<p><code>
 git clone git://github.com/imathis/octopress.git octopress
-cd octopress    # If you use RVM, You&rsquo;ll be asked if you trust the .rvmrc file (say yes).
-ruby &mdash;version  # Should report Ruby 1.9.2
+cd octopress    # If you use RVM, You'll be asked if you trust the .rvmrc file (say yes).
+ruby --version  # Should report Ruby 1.9.2
+</code>
 然后安装依赖:</p>
 
-<p>1
-2
-3
+<p><code>
 gem install bundler
 rbenv rehash    # If you use rbenv, rehash to be able to run the bundle command
 bundle install
+</code>
 最后安装Octopress</p>
 
-<p>1
+<p><code>
 rake install
+</code>
 配置</p>
 
 <p>安装好之后可以简单配置一下：</p>
@@ -84,11 +78,13 @@ rake install
 
 <p>然后就可以写博客啦～ 写博客主要是用以下几个命令，这里有详细介绍：</p>
 
-<p>rake new_post[‘article name’] 生成博文框架，然后修改生成的文件即可
+<p><code>
+rake new_post[‘article name’] 生成博文框架，然后修改生成的文件即可
 rake generate 生成静态文件
 rake watch 检测文件变化，实时生成新内容
 rake preview 在本机4000端口生成访问内容
 rake deploy 发布文件
+</code>
 博文是采用markdown语法，另外增加了一些扩充的插件，markdown的介绍文章网上可以搜到很多，比如这个。</p>
 
 <p>高级配置</p>
@@ -96,11 +92,9 @@ rake deploy 发布文件
 <p>我主要介绍一下如何配置评论和分享到微博功能。步骤如下：</p>
 
 <p>在<em>config.yml中增加一项： weibo_share: true
-修改 source/</em>includes/post/sharing.html ，增加：
-1
-2
-3
-4
+修改 source/</em>includes/post/sharing.html ，增加：</p>
+
+<p>```
   // 下面的大括号是全角的，如果复制，请自行改成半角
  ｛% if site.weibo_share %｝</p>
 
@@ -108,6 +102,7 @@ rake deploy 发布文件
 </code></pre>
 
 <p> ｛% endif %｝
+```
 增加文件：source/<em>includes/post/weibo.html
 访问 <a href="http://www.jiathis.com/">http://www.jiathis.com/</a> ，获取分享的代码
 访问 <a href="http://uyan.cc/">http://uyan.cc/</a> ，获得评论的代码
