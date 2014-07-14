@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
 
-  <title><![CDATA[Category: 测试 | Hello World]]></title>
-  <link href="http://yindashan.github.io/blog/categories/ce-shi/atom.xml" rel="self"/>
+  <title><![CDATA[Tag: jekyll | Hello World]]></title>
+  <link href="http://yindashan.github.io/tags/jekyll/atom.xml" rel="self"/>
   <link href="http://yindashan.github.io/"/>
   <updated>2014-07-14T23:12:25+08:00</updated>
   <id>http://yindashan.github.io/</id>
@@ -142,24 +142,6 @@ rake deploy 发布文件
 Posted by 唐巧 Feb 10th, 2012   summary</p>
 
 <p>原创文章，版权声明：自由转载-非商用-非衍生-保持署名 | Creative Commons BY-NC-ND 3.0</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[测试文章]]></title>
-    <link href="http://yindashan.github.io/blog/2014/07/12/ce-shi-wen-zhang/"/>
-    <updated>2014-07-12T14:09:53+08:00</updated>
-    <id>http://yindashan.github.io/blog/2014/07/12/ce-shi-wen-zhang</id>
-    <content type="html"><![CDATA[<p>测试</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Hello World]]></title>
-    <link href="http://yindashan.github.io/blog/2014/07/12/hello-world/"/>
-    <updated>2014-07-12T10:38:00+08:00</updated>
-    <id>http://yindashan.github.io/blog/2014/07/12/hello-world</id>
-    <content type="html"><![CDATA[
 ]]></content>
   </entry>
   

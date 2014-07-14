@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Tag: tag_test | Hello World]]></title>
+  <link href="http://yindashan.github.io/tags/tag-test/atom.xml" rel="self"/>
+  <link href="http://yindashan.github.io/"/>
+  <updated>2014-07-14T23:12:25+08:00</updated>
+  <id>http://yindashan.github.io/</id>
+  <author>
+    <name><![CDATA[yindashan]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[测试文章]]></title>
+    <link href="http://yindashan.github.io/blog/2014/07/12/ce-shi-wen-zhang/"/>
+    <updated>2014-07-12T14:09:53+08:00</updated>
+    <id>http://yindashan.github.io/blog/2014/07/12/ce-shi-wen-zhang</id>
+    <content type="html"><![CDATA[<p>测试</p>
+]]></content>
+  </entry>
+  
+</feed>
