@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: 生活 | Hello World]]></title>
+  <link href="http://yindashan.github.io/blog/categories/sheng-huo/atom.xml" rel="self"/>
+  <link href="http://yindashan.github.io/"/>
+  <updated>2014-10-22T14:48:14+08:00</updated>
+  <id>http://yindashan.github.io/</id>
+  <author>
+    <name><![CDATA[yindashan]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[千里之行，始于足下]]></title>
+    <link href="http://yindashan.github.io/blog/2014/10/22/qian-li-zhi-xing-,shi-yu-zu-xia/"/>
+    <updated>2014-10-22T14:41:29+08:00</updated>
+    <id>http://yindashan.github.io/blog/2014/10/22/qian-li-zhi-xing-,shi-yu-zu-xia</id>
+    <content type="html"><![CDATA[<p>千里之行，始于足下。</p>
+]]></content>
+  </entry>
+  
+</feed>

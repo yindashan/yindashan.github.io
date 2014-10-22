@@ -3,6 +3,12 @@
   
   
   <url>
+    <loc>http://yindashan.github.io/blog/2014/10/22/qian-li-zhi-xing-,shi-yu-zu-xia/</loc>
+    <lastmod>2014-10-22T14:41:29+08:00</lastmod>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
     <loc>http://yindashan.github.io/blog/2014/07/13/shi-yong-github-pagesjian-du-li-bo-ke/</loc>
     <lastmod>2014-07-13T10:43:34+08:00</lastmod>
     <priority>0.8</priority>
@@ -29,35 +35,35 @@
   
   <url>
     <loc>http://yindashan.github.io/</loc>
-    <lastmod>2014-07-14T23:12:25+08:00</lastmod>
+    <lastmod>2014-10-22T14:48:14+08:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   
   <url>
     <loc>http://yindashan.github.io/blog/archives/</loc>
-    <lastmod>2014-07-14T23:12:25+08:00</lastmod>
+    <lastmod>2014-10-22T14:48:14+08:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   
   <url>
     <loc>http://yindashan.github.io/super-awesome/</loc>
-    <lastmod>2014-07-14T23:12:25+08:00</lastmod>
+    <lastmod>2014-10-22T14:48:14+08:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   
   <url>
     <loc>http://yindashan.github.io/about/</loc>
-    <lastmod>2014-07-14T23:12:25+08:00</lastmod>
+    <lastmod>2014-10-22T14:48:14+08:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   
   <url>
     <loc>http://yindashan.github.io/super-awesome/page.html</loc>
-    <lastmod>2014-07-14T23:12:25+08:00</lastmod>
+    <lastmod>2014-10-22T14:48:14+08:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
