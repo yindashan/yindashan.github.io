@@ -4,7 +4,7 @@
   <title><![CDATA[Hello World]]></title>
   <link href="http://yindashan.github.io/atom.xml" rel="self"/>
   <link href="http://yindashan.github.io/"/>
-  <updated>2014-10-22T16:31:04+08:00</updated>
+  <updated>2014-10-24T22:00:46+08:00</updated>
   <id>http://yindashan.github.io/</id>
   <author>
     <name><![CDATA[yindashan]]></name>
@@ -12,6 +12,15 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Python中装饰器详解]]></title>
+    <link href="http://yindashan.github.io/blog/2014/10/24/pythonzhong-zhuang-shi-qi-xiang-jie/"/>
+    <updated>2014-10-24T21:59:08+08:00</updated>
+    <id>http://yindashan.github.io/blog/2014/10/24/pythonzhong-zhuang-shi-qi-xiang-jie</id>
+    <content type="html"><![CDATA[<p>python中装饰器详解</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[千里之行，始于足下]]></title>
