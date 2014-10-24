@@ -9,8 +9,7 @@
   <meta name="author" content="yindashan">
 
   
-  <meta name="description" content="python中装饰器详解
-">
+  <meta name="description" content="一直对装饰器的概念很模糊，今天终于花时间重点研究了一下。Python中的装饰器就类似于Java中的面向切面编程，就是在函数执行前和执行后包装自定义的一些东西。关于装饰器的原理和简易实现可以参考这位兄弟的博客，写的很简单易懂。 http://www.cnblogs.com/huxi/archive/ &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -98,7 +97,495 @@
   </header>
 
 
-  <div class="entry-content"><p>python中装饰器详解</p>
+  <div class="entry-content"><p>一直对装饰器的概念很模糊，今天终于花时间重点研究了一下。Python中的装饰器就类似于Java中的面向切面编程，就是在函数执行前和执行后包装自定义的一些东西。关于装饰器的原理和简易实现可以参考这位兄弟的博客，写的很简单易懂。</p>
+
+<p><a href="http://www.cnblogs.com/huxi/archive/2011/03/01/1967600.html">http://www.cnblogs.com/huxi/archive/2011/03/01/1967600.html</a></p>
+
+<h2>1. 装饰器入门</h2>
+
+<h3>1.1. 需求是怎么来的？</h3>
+
+<p>装饰器的定义很是抽象，我们来看一个小例子。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>def foo():
+</span><span class='line'>    print 'in foo()'
+</span><span class='line'>
+</span><span class='line'>foo()</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这是一个很无聊的函数没错。但是突然有一个更无聊的人，我们称呼他为B君，说我想看看执行这个函数用了多长时间，好吧，那么我们可以这样做：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>import time
+</span><span class='line'>def foo():
+</span><span class='line'>    start = time.clock()
+</span><span class='line'>    print 'in foo()'
+</span><span class='line'>    end = time.clock()
+</span><span class='line'>    print 'used:', end - start
+</span><span class='line'> 
+</span><span class='line'>foo()</span></code></pre></td></tr></table></div></figure>
+
+
+<p>很好，功能看起来无懈可击。可是蛋疼的B君此刻突然不想看这个函数了，他对另一个叫foo2的函数产生了更浓厚的兴趣。</p>
+
+<p>怎么办呢？如果把以上新增加的代码复制到foo2里，这就犯了大忌了~复制什么的难道不是最讨厌了么！而且，如果B君继续看了其他的函数呢？</p>
+
+<h3>1.2. 以不变应万变，是变也</h3>
+
+<p>还记得吗，函数在Python中是一等公民，那么我们可以考虑重新定义一个函数timeit，将foo的引用传递给他，然后在timeit中调用foo并进行计时，这样，我们就达到了不改动foo定义的目的，而且，不论B君看了多少个函数，我们都不用去修改函数定义了！</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>import time
+</span><span class='line'> 
+</span><span class='line'>def foo():
+</span><span class='line'>    print 'in foo()'
+</span><span class='line'> 
+</span><span class='line'>def timeit(func):
+</span><span class='line'>    start = time.clock()
+</span><span class='line'>    func()
+</span><span class='line'>    end =time.clock()
+</span><span class='line'>    print 'used:', end - start
+</span><span class='line'> 
+</span><span class='line'>timeit(foo)</span></code></pre></td></tr></table></div></figure>
+
+
+<p>看起来逻辑上并没有问题，一切都很美好并且运作正常！……等等，我们似乎修改了调用部分的代码。原本我们是这样调用的：foo()，修改以后变成了：timeit(foo)。这样的话，如果foo在N处都被调用了，你就不得不去修改这N处的代码。或者更极端的，考虑其中某处调用的代码无法修改这个情况，比如：这个函数是你交给别人使用的。</p>
+
+<h3>1.3. 最大限度地少改动！</h3>
+
+<p>既然如此，我们就来想想办法不修改调用的代码；如果不修改调用代码，也就意味着调用foo()需要产生调用timeit(foo)的效果。我们可以想到将timeit赋值给foo，但是timeit似乎带有一个参数……想办法把参数统一吧！如果timeit(foo)不是直接产生调用效果，而是返回一个与foo参数列表一致的函数的话……就很好办了，将timeit(foo)的返回值赋值给foo，然后，调用foo()的代码完全不用修改！</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>#-*- coding: UTF-8 -*-
+</span><span class='line'>import time
+</span><span class='line'> 
+</span><span class='line'>def foo():
+</span><span class='line'>    print 'in foo()'
+</span><span class='line'> 
+</span><span class='line'># 定义一个计时器，传入一个，并返回另一个附加了计时功能的方法
+</span><span class='line'>def timeit(func):
+</span><span class='line'>     
+</span><span class='line'>    # 定义一个内嵌的包装函数，给传入的函数加上计时功能的包装
+</span><span class='line'>    def wrapper():
+</span><span class='line'>        start = time.clock()
+</span><span class='line'>        func()
+</span><span class='line'>        end =time.clock()
+</span><span class='line'>        print 'used:', end - start
+</span><span class='line'>     
+</span><span class='line'>    # 将包装后的函数返回, 记住一定要返回 ，不然外面调用foo的地方将会无函数可用。实际上此时foo=timeit(foo)
+</span><span class='line'>    return wrapper
+</span><span class='line'> 
+</span><span class='line'>foo = timeit(foo)
+</span><span class='line'>foo()</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这样，一个简易的计时器就做好了！我们只需要在定义foo以后调用foo之前，加上foo = timeit(foo)，就可以达到计时的目的，这也就是装饰器的概念，看起来像是foo被timeit装饰了。在在这个例子中，函数进入和退出时需要计时，这被称为一个横切面(Aspect)，这种编程方式被称为面向切面的编程(Aspect-Oriented Programming)。与传统编程习惯的从上往下执行方式相比较而言，像是在函数执行的流程中横向地插入了一段逻辑。在特定的业务领域里，能减少大量重复代码。面向切面编程还有相当多的术语，这里就不多做介绍，感兴趣的话可以去找找相关的资料。</p>
+
+<p>这个例子仅用于演示，并没有考虑foo带有参数和有返回值的情况，完善它的重任就交给你了 ：）</p>
+
+<h2>2. Python的额外支持</h2>
+
+<h3>2.1. 语法糖</h3>
+
+<p>上面这段代码看起来似乎已经不能再精简了，Python于是提供了一个语法糖来降低字符输入量。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>import time
+</span><span class='line'> 
+</span><span class='line'>def timeit(func):
+</span><span class='line'>    def wrapper():
+</span><span class='line'>        start = time.clock()
+</span><span class='line'>        func()
+</span><span class='line'>        end =time.clock()
+</span><span class='line'>        print 'used:', end - start
+</span><span class='line'>    return wrapper
+</span><span class='line'> 
+</span><span class='line'>@timeit
+</span><span class='line'>def foo():
+</span><span class='line'>    print 'in foo()'
+</span><span class='line'> 
+</span><span class='line'>foo()</span></code></pre></td></tr></table></div></figure>
+
+
+<p>重点关注第11行的@timeit，在定义上加上这一行与另外写foo = timeit(foo)完全等价，千万不要以为@有另外的魔力。除了字符输入少了一些，还有一个额外的好处：这样看上去更有装饰器的感觉。</p>
+
+<h3>2.2. 内置的装饰器</h3>
+
+<p>内置的装饰器有三个，分别是staticmethod、classmethod和property，作用分别是把类中定义的实例方法变成静态方法、类方法和类属性。由于模块里可以定义函数，所以静态方法和类方法的用处并不是太多，除非你想要完全的面向对象编程。而属性也不是不可或缺的，Java没有属性也一样活得很滋润。从我个人的Python经验来看，我没有使用过property，使用staticmethod和classmethod的频率也非常低。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>class Rabbit(object):
+</span><span class='line'>     
+</span><span class='line'>    def __init__(self, name):
+</span><span class='line'>        self._name = name
+</span><span class='line'>     
+</span><span class='line'>    @staticmethod
+</span><span class='line'>    def newRabbit(name):
+</span><span class='line'>        return Rabbit(name)
+</span><span class='line'>     
+</span><span class='line'>    @classmethod
+</span><span class='line'>    def newRabbit2(cls):
+</span><span class='line'>        return Rabbit('')
+</span><span class='line'>     
+</span><span class='line'>    @property
+</span><span class='line'>    def name(self):
+</span><span class='line'>        return self._name</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这里定义的属性是一个只读属性，如果需要可写，则需要再定义一个setter：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>@name.setter
+</span><span class='line'>def name(self, name):
+</span><span class='line'>    self._name = name</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>2.3. functools模块</h3>
+
+<p>functools模块提供了两个装饰器。这个模块是Python 2.5后新增的，一般来说大家用的应该都高于这个版本。但我平时的工作环境是2.4 T-T</p>
+
+<h4>2.3.1. wraps(wrapped[, assigned][, updated]):</h4>
+
+<p>这是一个很有用的装饰器。看过前一篇反射的朋友应该知道，函数是有几个特殊属性比如函数名，在被装饰后，上例中的函数名foo会变成包装函数的名字wrapper，如果你希望使用反射，可能会导致意外的结果。这个装饰器可以解决这个问题，它能将装饰过的函数的特殊属性保留。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>import time
+</span><span class='line'>import functools
+</span><span class='line'> 
+</span><span class='line'>def timeit(func):
+</span><span class='line'>    @functools.wraps(func)
+</span><span class='line'>    def wrapper():
+</span><span class='line'>        start = time.clock()
+</span><span class='line'>        func()
+</span><span class='line'>        end =time.clock()
+</span><span class='line'>        print 'used:', end - start
+</span><span class='line'>    return wrapper
+</span><span class='line'> 
+</span><span class='line'>@timeit
+</span><span class='line'>def foo():
+</span><span class='line'>    print 'in foo()'
+</span><span class='line'> 
+</span><span class='line'>foo()
+</span><span class='line'>print foo.__name__</span></code></pre></td></tr></table></div></figure>
+
+
+<p>首先注意第5行，如果注释这一行，foo.<strong>name</strong>将是&#8217;wrapper&#8217;。另外相信你也注意到了，这个装饰器竟然带有一个参数。实际上，他还有另外两个可选的参数，assigned中的属性名将使用赋值的方式替换，而updated中的属性名将使用update的方式合并，你可以通过查看functools的源代码获得它们的默认值。对于这个装饰器，相当于wrapper = functools.wraps(func)(wrapper)。</p>
+
+<h2>3. 下面是我本地测试的一些示例</h2>
+
+<h3>3.1. 普通装饰器</h3>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>def common(func):
+</span><span class='line'>    '''普通装饰器'''
+</span><span class='line'>    def _deco(*args, **kwargs):
+</span><span class='line'>        print 'args:', args
+</span><span class='line'>        return func(*args, **kwargs)
+</span><span class='line'>    return _deco
+</span><span class='line'>
+</span><span class='line'>@common
+</span><span class='line'>def test_common(p):
+</span><span class='line'>    print p
+</span><span class='line'>
+</span><span class='line'>def main():
+</span><span class='line'>  test_common(1)
+</span><span class='line'>
+</span><span class='line'>if __name__ == "__main__":
+</span><span class='line'>    main()</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>3.2. 给函数的类装饰器(避免在装饰器对象上保留状态)</h3>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>class Common(object):
+</span><span class='line'>    '''给函数的类装饰器(避免在装饰器对象上保留状态)'''
+</span><span class='line'>    def __init__(self, func):
+</span><span class='line'>        self.func = func
+</span><span class='line'>    def __call__(self, *args, **kwargs):
+</span><span class='line'>        print 'args:', args
+</span><span class='line'>        return self.func(*args, **kwargs)
+</span><span class='line'>
+</span><span class='line'>@Common
+</span><span class='line'>def test_common_class(p):
+</span><span class='line'>    print p
+</span><span class='line'>
+</span><span class='line'>def main():
+</span><span class='line'>  test_common_class(2)
+</span><span class='line'>
+</span><span class='line'>if __name__ == "__main__":
+</span><span class='line'>    main()</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>3.3. 带参数的装饰器</h3>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>def common_arg(*args, **kw):
+</span><span class='line'>    '''带参数的装饰器'''
+</span><span class='line'>    a = args
+</span><span class='line'>    b = kw
+</span><span class='line'>    def _common_arg(func):
+</span><span class='line'>        def _deco(*args, **kwargs):
+</span><span class='line'>            print 'args:', args, a, b
+</span><span class='line'>            return func(*args, **kwargs)
+</span><span class='line'>        return _deco
+</span><span class='line'>    return _common_arg
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'>@common_arg('c', 'd', e=1)
+</span><span class='line'>def test_common_arg(p):
+</span><span class='line'>    print p
+</span><span class='line'>
+</span><span class='line'>def main():
+</span><span class='line'>  test_common_arg(3)
+</span><span class='line'>
+</span><span class='line'>if __name__ == "__main__":
+</span><span class='line'>    main()
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>3.4. 一个比较实用的示例</h3>
+
+<p>模拟从数据库中获取数据，第一次从数据库中获取，获取成功后保存到redis里面，以后每次都从redis里面获取</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>import json
+</span><span class='line'>import redis
+</span><span class='line'>
+</span><span class='line'>def redis_cache(*args, **kwargs):
+</span><span class='line'>    redis_link_dict = kwargs
+</span><span class='line'>    print redis_link_dict
+</span><span class='line'>    redis_db = redis.StrictRedis(redis_link_dict['host'], redis_link_dict['port'], redis_link_dict['db'], redis_link_dict['password'])
+</span><span class='line'>    def _decorator(func):
+</span><span class='line'>        def _wrapped(*args, **kwargs):
+</span><span class='line'>            key, hash_key = args
+</span><span class='line'>            print key, hash_key
+</span><span class='line'>            # 判断当前key是否存在
+</span><span class='line'>            is_key = redis_db.exists(key)
+</span><span class='line'>            if is_key:
+</span><span class='line'>                # 判断当前key下是否有hash_key
+</span><span class='line'>                is_hash_key = redis_db.hexists(key, hash_key)
+</span><span class='line'>                if is_hash_key:
+</span><span class='line'>                    ret_data = redis_db.hget(key, hash_key)
+</span><span class='line'>                    if ret_data:
+</span><span class='line'>                        print u'从redis中获取数据'
+</span><span class='line'>                        return json.loads(ret_data)
+</span><span class='line'>            print u'从数据库中获取并写入到redis'
+</span><span class='line'>            ret_data = func(*args, **kwargs)
+</span><span class='line'>            redis_db.hset(key, hash_key, json.dumps(ret_data))
+</span><span class='line'>            return ret_data
+</span><span class='line'>        return _wrapped
+</span><span class='line'>    return _decorator
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'>@redis_cache(host='127.0.0.1', port=6379, db=0, password='N6MXWf')
+</span><span class='line'>def get_data_from_redis_or_db(key, hash_key):
+</span><span class='line'>    '''
+</span><span class='line'>    获取数据
+</span><span class='line'>    '''
+</span><span class='line'>    ret_data = {
+</span><span class='line'>        "username":"dashan",
+</span><span class='line'>        "datetime":"20141024"
+</span><span class='line'>    }
+</span><span class='line'>    return ret_data
+</span><span class='line'>
+</span><span class='line'>def main():
+</span><span class='line'>    key = 'dashan_hash'
+</span><span class='line'>    hash_key = '20141024'
+</span><span class='line'>    print get_data_from_redis_or_db(key, hash_key)
+</span><span class='line'>
+</span><span class='line'>if __name__ == "__main__":
+</span><span class='line'>    main()
+</span></code></pre></td></tr></table></div></figure>
+
+
+
 </div>
   
   
