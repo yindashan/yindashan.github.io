@@ -1,0 +1,376 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Python中json_pickle_cPickle在序列化时的性能对比 - Hello World</title>
+  <meta name="author" content="yindashan">
+
+  
+  <meta name="description" content="在上篇介绍python中装饰器的文章中(http://yindashan.github.io/blog/2014/10/24/pythonzhong-zhuang-shi-qi-xiang-jie/)提到一个装饰器实例，原来的打算是利用redis缓存减少请求的响应时间，第一次从数据库中获取数据， &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yindashan.github.io/blog/2014/10/25/pythonzhong-json-pickle-cpicklezai-xu-lie-hua-shi-de-dui-bi">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Hello World" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <script src="http://cdn.staticfile.org/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<!--<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+-->
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Hello World</a></h1>
+  
+    <h2>The door to the world!</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yindashan.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">我的首页</a></li>
+  <li><a href="/blog/archives">文章列表</a></li>
+  <li><a href="/about">关于</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Python中json_pickle_cPickle在序列化时的性能对比</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-10-25T10:51:57+08:00" pubdate data-updated="true">Oct 25<sup>th</sup>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>在上篇介绍python中装饰器的文章中(<a href="http://yindashan.github.io/blog/2014/10/24/pythonzhong-zhuang-shi-qi-xiang-jie/">http://yindashan.github.io/blog/2014/10/24/pythonzhong-zhuang-shi-qi-xiang-jie/</a>)提到一个装饰器实例，原来的打算是利用redis缓存减少请求的响应时间，第一次从数据库中获取数据，把数据回种到缓存，然后返回数据，第二次请求的时候直接从redis缓存中读取就可以了，经过实践发现性能并没有提升，反而下降了，这到底是什么情况呢？后来经过代码分析发现时间都花费在下面这行代码上了，足足会有4s.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>json.loads(ret_data)</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这个函数平常用的时候性能可以啊，完全能够满足自己的需求，这次到底是怎么回事？又经过一番分析，发现是由于ret_data数据量太大导致的，数据大概在15M左右，所以要把15M的字符数据转换成json对象这个太耗时了。从数据库中取数据才需要2s左右，现在从redis中取并解析完成需要将近5s,这显然不能满足需求。</p>
+
+<p>既然在数据量比较大的情况下json.loads()函数性能不能满足需求，那就得寻找其他的解决方案了，最终发现python中的内建序列化库pickle和cPickle是一个不错的选择，想到就测，发现在同等数据量的情况下json.loads()需要消耗4s左右，pickle只需要消耗1.5s左右，而cPickle更快，只需要消耗300ms左右,取其中一组测试结果：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>hget cost time:  0:00:00.052490
+</span><span class='line'>json.loads cost time:  0:00:04.859132
+</span><span class='line'>pickle.loads cost time:  0:00:01.458769
+</span><span class='line'>cPickle.loads cost time:  0:00:00.361623</span></code></pre></td></tr></table></div></figure>
+
+
+<p>测试代码如下：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>import json
+</span><span class='line'>import time
+</span><span class='line'>import datetime
+</span><span class='line'>import traceback
+</span><span class='line'>import pickle
+</span><span class='line'>import cPickle
+</span><span class='line'>
+</span><span class='line'>import redis
+</span><span class='line'>
+</span><span class='line'>def test_redis():
+</span><span class='line'>    """
+</span><span class='line'>    测试redis
+</span><span class='line'>    """
+</span><span class='line'>    redis_db = redis.StrictRedis(host='127.0.0.1', port=6379, db=0, password='N6MXWf')
+</span><span class='line'>    
+</span><span class='line'>    d1 = datetime.datetime.now()
+</span><span class='line'>    ret_data = redis_db.hget('forecast_redis', '20141023')
+</span><span class='line'>    d2 = datetime.datetime.now()
+</span><span class='line'>    print 'hget cost time: ', d2 - d1
+</span><span class='line'>    ret_data = json.loads(ret_data)
+</span><span class='line'>    d3 = datetime.datetime.now()
+</span><span class='line'>    print 'json.loads cost time: ', d3 - d2
+</span><span class='line'>    ret_data = redis_db.hget('forecast_redis', '20141024')
+</span><span class='line'>    d4 = datetime.datetime.now()
+</span><span class='line'>    ret_data = pickle.loads(ret_data)
+</span><span class='line'>    d5 = datetime.datetime.now()
+</span><span class='line'>    print 'pickle.loads cost time: ', d5 - d4
+</span><span class='line'>    ret_data = redis_db.hget('forecast_redis', '20141025')
+</span><span class='line'>    d6 = datetime.datetime.now()
+</span><span class='line'>    ret_data = cPickle.loads(ret_data)
+</span><span class='line'>    d7 = datetime.datetime.now()
+</span><span class='line'>    print 'cPickle.loads cost time: ', d7 - d6
+</span><span class='line'>    print 'success'
+</span><span class='line'>    
+</span><span class='line'>    
+</span><span class='line'>def main():
+</span><span class='line'>    test_redis()
+</span><span class='line'>
+</span><span class='line'>if __name__ == "__main__":
+</span><span class='line'>    main()</span></code></pre></td></tr></table></div></figure>
+
+
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">yindashan</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-10-25T10:51:57+08:00" pubdate data-updated="true">Oct 25<sup>th</sup>, 2014</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/python/'>python</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  
+  
+    <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style_32x32">
+	<a class="jiathis_button_qzone"></a>
+	<a class="jiathis_button_tsina"></a>
+	<a class="jiathis_button_tqq"></a>
+	<a class="jiathis_button_weixin"></a>
+	<a class="jiathis_button_renren"></a>
+	<a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+	<a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1395155901683607" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+<!-- UY BEGIN -->
+<div id="uyan_frame"></div>
+<script type="text/javascript" src="http://v2.uyan.cc/code/uyan.js"></script>
+<!-- UY END -->
+ 
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/10/24/pythonzhong-zhuang-shi-qi-xiang-jie/" title="Previous Post: python中装饰器详解">&laquo; python中装饰器详解</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>文章类别</h1>
+    <ul id="category-list"><li><a href='/blog/categories/octopress'>octopress (2)</a></li><li><a href='/blog/categories/python'>python (2)</a></li><li><a href='/blog/categories/ce-shi'>测试 (3)</a></li><li><a href='/blog/categories/sheng-huo'>生活 (1)</a></li></ul>
+</section>
+<section>
+    <h1>标签云</h1>
+    <ul class="tag-cloud">
+        <a style="font-size: 100%" href="/tags/github/">Github</a>
+<a style="font-size: 100%" href="/tags/linux/">Linux</a>
+<a style="font-size: 100%" href="/tags/thinking/">Thinking</a>
+<a style="font-size: 100%" href="/tags/jekyll/">jekyll</a>
+<a style="font-size: 100%" href="/tags/tag-test/">tag_test</a>
+<a style="font-size: 210%" href="/tags/test/">test</a>
+
+    </ul>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/10/25/pythonzhong-json-pickle-cpicklezai-xu-lie-hua-shi-de-dui-bi/">Python中json_pickle_cPickle在序列化时的性能对比</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/24/pythonzhong-zhuang-shi-qi-xiang-jie/">Python中装饰器详解</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/22/qian-li-zhi-xing-,shi-yu-zu-xia/">千里之行，始于足下</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/07/13/shi-yong-github-pagesjian-du-li-bo-ke/">使用Github Pages建独立博客</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/07/12/xiang-xie-cheng-xu-%5B%3F%5D-yang-xie-bo-ke-:da-jian-ji-yu-githubde-bo-ke/">像写程序一样写博客：搭建基于github的博客</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/yindashan">@yindashan</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'yindashan',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - yindashan -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>
