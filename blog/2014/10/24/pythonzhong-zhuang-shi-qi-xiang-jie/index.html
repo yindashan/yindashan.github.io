@@ -582,7 +582,135 @@
 </span></code></pre></td></tr></table></div></figure>
 
 
+<h3>3.5. 另外一个装饰器的使用场景</h3>
 
+<p>tornado中的用户认证模块</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>class MessageNewHandler(BaseHandler,MessageMixin):
+</span><span class='line'>    @tornado.web.authenticated
+</span><span class='line'>    def post(self):
+</span><span class='line'>        user  = self.get_current_user()
+</span><span class='line'>        message = {
+</span><span class='line'>                "id":str(uuid.uuid4()),
+</span><span class='line'>                "current_user":user.id,
+</span><span class='line'>                'up':0,
+</span><span class='line'>        }</span></code></pre></td></tr></table></div></figure>
+
+
+<p>上面代码表示在执行post方法之前必须经过用户登录认证，认证通过后才可以正常执行该方法。
+看看tornado.web.authenticated 是怎么实现的：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>def authenticated(method):
+</span><span class='line'>    """Decorate methods with this to require that the user be logged in."""
+</span><span class='line'>    @functools.wraps(method)
+</span><span class='line'>    def wrapper(self, *args, **kwargs):
+</span><span class='line'>        if not self.current_user:
+</span><span class='line'>            if self.request.method in ("GET", "HEAD"):
+</span><span class='line'>                url = self.get_login_url()
+</span><span class='line'>                if "?" not in url:
+</span><span class='line'>                    if urlparse.urlsplit(url).scheme:
+</span><span class='line'>                        # if login url is absolute, make next absolute too
+</span><span class='line'>                        next_url = self.request.full_url()
+</span><span class='line'>                    else:
+</span><span class='line'>                        next_url = self.request.uri
+</span><span class='line'>                    url += "?" + urllib.urlencode(dict(next=next_url))
+</span><span class='line'>                self.redirect(url)
+</span><span class='line'>                return
+</span><span class='line'>            raise HTTPError(403)
+</span><span class='line'>        return method(self, *args, **kwargs)
+</span><span class='line'>    return wrapper</span></code></pre></td></tr></table></div></figure>
+
+
+<hr />
+
+<p>简单讲一下 functools.wraps 这个修饰器的作用：
+functools 这个工具提供了三个函数：partial ,update_wrapper,wraps ,而wraps 只是对 update_wrapper进行了封装一下而已。</p>
+
+<p>在修饰器</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>def myDeco(func)
+</span><span class='line'> 
+</span><span class='line'>    return func</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这一句中，func 实际上已经丢掉了原func 的几个属性：<strong>name</strong>、<strong>module</strong>、<strong>doc</strong>和 <strong>dict</strong>，所以，返回后的函数你无法再使用  func.<strong>doc</strong>  来获得注释内容 ，而如果改成这样：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>def myDeco(func):
+</span><span class='line'> 
+</span><span class='line'>    @functools.wraps(func)
+</span><span class='line'> 
+</span><span class='line'>    def _myDeco(*args,**kwargs):
+</span><span class='line'> 
+</span><span class='line'>        return func(*args,**kwargs)
+</span><span class='line'> 
+</span><span class='line'>    return _myDeco</span></code></pre></td></tr></table></div></figure>
+
+
+<p>则 functools.wraps 会帮你重新绑定在返回的新函数上。</p>
+
+<hr />
+
+<p>说回到tornado 的例子，看它是怎么做认证 预处理的。</p>
+
+<p>首先是：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>if not self.current_user</span></code></pre></td></tr></table></div></figure>
+
+
+<p>判断是否当前用户(self.current_user是tornado的内置变量，保存当前登录的用户），如果不是，则抛出错误：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>raise HTTPError(403)</span></code></pre></td></tr></table></div></figure>
+
+
+<p>否则就返回:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>return method(self, *args, **kwargs)</span></code></pre></td></tr></table></div></figure>
+
+
+<p>表示认证成功，开发者可以继续对认证成功的用户做应该做的动作。</p>
 </div>
 
 
@@ -660,7 +788,7 @@
   
     <section>
   <h1>文章类别</h1>
-    <ul id="category-list"><li><a href='/blog/categories/octopress'>octopress (2)</a></li><li><a href='/blog/categories/python'>python (2)</a></li><li><a href='/blog/categories/ce-shi'>测试 (3)</a></li><li><a href='/blog/categories/sheng-huo'>生活 (1)</a></li></ul>
+    <ul id="category-list"><li><a href='/blog/categories/octopress'>octopress (2)</a></li><li><a href='/blog/categories/python'>python (3)</a></li><li><a href='/blog/categories/ce-shi'>测试 (3)</a></li><li><a href='/blog/categories/sheng-huo'>生活 (1)</a></li></ul>
 </section>
 <section>
     <h1>标签云</h1>
@@ -679,6 +807,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/10/26/pythonzhong-fan-she-he-zi-sheng/">Python中反射和自省</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/10/25/pythonzhong-json-pickle-cpicklezai-xu-lie-hua-shi-de-dui-bi/">Python中json_pickle_cPickle在序列化时的性能对比</a>
       </li>
     
@@ -692,10 +824,6 @@
     
       <li class="post">
         <a href="/blog/2014/07/13/shi-yong-github-pagesjian-du-li-bo-ke/">使用Github Pages建独立博客</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/07/12/xiang-xie-cheng-xu-%5B%3F%5D-yang-xie-bo-ke-:da-jian-ji-yu-githubde-bo-ke/">像写程序一样写博客：搭建基于github的博客</a>
       </li>
     
   </ul>
