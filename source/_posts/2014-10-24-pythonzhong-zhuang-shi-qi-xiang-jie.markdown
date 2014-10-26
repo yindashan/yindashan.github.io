@@ -285,4 +285,85 @@ if __name__ == "__main__":
     main()
 
 ```
+###3.5. 另外一个装饰器的使用场景
+tornado中的用户认证模块
+```
+class MessageNewHandler(BaseHandler,MessageMixin):
+    @tornado.web.authenticated
+    def post(self):
+        user  = self.get_current_user()
+        message = {
+                "id":str(uuid.uuid4()),
+                "current_user":user.id,
+                'up':0,
+        }
+```
+上面代码表示在执行post方法之前必须经过用户登录认证，认证通过后才可以正常执行该方法。
+看看tornado.web.authenticated 是怎么实现的：
+```
+def authenticated(method):
+    """Decorate methods with this to require that the user be logged in."""
+    @functools.wraps(method)
+    def wrapper(self, *args, **kwargs):
+        if not self.current_user:
+            if self.request.method in ("GET", "HEAD"):
+                url = self.get_login_url()
+                if "?" not in url:
+                    if urlparse.urlsplit(url).scheme:
+                        # if login url is absolute, make next absolute too
+                        next_url = self.request.full_url()
+                    else:
+                        next_url = self.request.uri
+                    url += "?" + urllib.urlencode(dict(next=next_url))
+                self.redirect(url)
+                return
+            raise HTTPError(403)
+        return method(self, *args, **kwargs)
+    return wrapper
+```
+
+---------------------------------------------------------------
+
+简单讲一下 functools.wraps 这个修饰器的作用：
+functools 这个工具提供了三个函数：partial ,update_wrapper,wraps ,而wraps 只是对 update_wrapper进行了封装一下而已。
+
+在修饰器
+```
+def myDeco(func)
+ 
+    return func
+```
+这一句中，func 实际上已经丢掉了原func 的几个属性：__name__、__module__、__doc__和 __dict__，所以，返回后的函数你无法再使用  func.__doc__  来获得注释内容 ，而如果改成这样：
+
+```
+def myDeco(func):
+ 
+    @functools.wraps(func)
+ 
+    def _myDeco(*args,**kwargs):
+ 
+        return func(*args,**kwargs)
+ 
+    return _myDeco
+```
+则 functools.wraps 会帮你重新绑定在返回的新函数上。
+
+---------------------------------------------------------------
+
+说回到tornado 的例子，看它是怎么做认证 预处理的。
+
+首先是：
+```
+if not self.current_user
+```
+判断是否当前用户(self.current_user是tornado的内置变量，保存当前登录的用户），如果不是，则抛出错误：
+
+```
+raise HTTPError(403)
+```
+否则就返回:
+```
+return method(self, *args, **kwargs)
+```
+表示认证成功，开发者可以继续对认证成功的用户做应该做的动作。
 
