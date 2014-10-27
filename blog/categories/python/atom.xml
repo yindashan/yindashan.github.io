@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Python | Hello World]]></title>
   <link href="http://yindashan.github.io/blog/categories/python/atom.xml" rel="self"/>
   <link href="http://yindashan.github.io/"/>
-  <updated>2014-10-27T10:40:43+08:00</updated>
+  <updated>2014-10-27T11:08:29+08:00</updated>
   <id>http://yindashan.github.io/</id>
   <author>
     <name><![CDATA[yindashan]]></name>
@@ -595,6 +595,22 @@ s3 = json.dumps(a)
 10.列表和迭代器版本存在 &ndash; 迭代器是内存效率和可伸缩性的。使用 itertools<br>
 11.创建生成器以及尽可能使用 yeild，它们比正常的列表方式更快。<br>
 12.使用 Map ，Reduce 和 Filter 代替 for 循环<br>
+Map的用法：map(函数, 序列)，对于序列中规定每个元素，调用函数，把所有返回值放到一个list中。
+```</p>
+
+<blockquote><blockquote><blockquote><p>map(lambda x: x*x, range(1, 11)) # 队列中每个元素求平方然后返回一个新的队列
+[1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
+<code>
+Reduce的用法：reduce(函数, 序列)，将序列中的元素依据函数的操作合并起来，最终返回一个结果。
+</code>
+reduce(lambda x,y : x+y, range(1, 11)) # 返回队列中所有的元素的总和
+55
+<code>
+Filter的用法：filter(函数, 序列)，依据函数的返回值过滤序列中的元素，函数返回真（非0）则保留元素，返回假（0）则不保留。
+</code>
+filter(lambda x: x%3==0, range(1, 11)) # 返回队列中能被3整除的元素组成的新队列
+[3, 6, 9]
+```
 13.校验 a in b， 字典 或 set 比 列表 或 元组 更好<br>
 14.当数据量大的时候，尽可能使用不可变数据类型，他们更快 元组 > 列表<br>
 15.在一个列表中插入数据的复杂度为 O(n)<br>
@@ -607,7 +623,7 @@ s3 = json.dumps(a)
 19.GIL(<a href="http://wiki.python.org/moin/GlobalInterpreterLock">http://wiki.python.org/moin/GlobalInterpreterLock</a>) &ndash; GIL is a daemon<br>
 GIL 仅仅允许一个 Python 的原生线程来运行每个进程。阻止 CPU 级别的并行，尝试使用 ctypes 和 原生的 C 库来解决它，当你达到 Python 优化的最后，总是存在一个选项，可以使用原生的 C 重写慢的函数，通过 Python 的 C 绑定使用它，其他的库如 gevent 也是致力于解决这个问题，并且获得了成功。
 TL,DR：当你写代码了，过一遍数据结构，迭代结构，内建和为 GIL 创建 C 扩展，如有必要。
-更新：multiprocessing 是在 GIL 的范围之外，这意味着你可以使用 multiprocessing 这个标准库来运行多个进程。</p>
+更新：multiprocessing 是在 GIL 的范围之外，这意味着你可以使用 multiprocessing 这个标准库来运行多个进程。</p></blockquote></blockquote></blockquote>
 ]]></content>
   </entry>
   
