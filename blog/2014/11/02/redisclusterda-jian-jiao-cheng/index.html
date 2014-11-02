@@ -1,0 +1,797 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>RedisCluster搭建教程 - Hello World</title>
+  <meta name="author" content="yindashan">
+
+  
+  <meta name="description" content="1 RedisCluster简介 Redis继推出支持Lua脚本之后又一重大改进——RedisCluster，从此再也不用客户端自己实现一致性哈希或者使用Twemproxy来实现伪集群了。现在的redis最新版本为3.0.0，还处于beta测试阶段，将会在年底推出稳定版。
+Redis &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yindashan.github.io/blog/2014/11/02/redisclusterda-jian-jiao-cheng">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Hello World" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <!--<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+  <script src="http://cdn.staticfile.org/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<!--<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+-->
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Hello World</a></h1>
+  
+    <h2>The door to the world!</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="https://www.google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yindashan.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">我的首页</a></li>
+  <li><a href="/blog/archives">文章列表</a></li>
+  <li><a href="/about">关于</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">RedisCluster搭建教程</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-11-02T11:40:59+08:00" pubdate data-updated="true">Nov 2<sup>nd</sup>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><h2>1   RedisCluster简介</h2>
+
+<p>Redis继推出支持Lua脚本之后又一重大改进——RedisCluster，从此再也不用客户端自己实现一致性哈希或者使用Twemproxy来实现伪集群了。现在的redis最新版本为3.0.0，还处于beta测试阶段，将会在年底推出稳定版。
+Redis 集群使用数据分片（sharding）而非一致性哈希（consistency hashing）来实现：一个Redis 集群包
+含16384 个哈希槽（hash slot），数据库中的每个键都属于这16384 个哈希槽的其中一个，集群使用公式
+CRC16(key) % 16384 来计算键key 属于哪个槽，其中CRC16(key) 语句用于计算键key 的CRC16 校验和。</p>
+
+<h2>2   RedisCluster的优点和缺点</h2>
+
+<p>一般一个事务的优点和缺点都是放在最后作为总结，不过在这里直接先给出rediscluster的优点和缺点，显得直观：
+优点：<br>
+1.  在线分片，可以在线添加节点和删除节点，易于扩容<br>
+2.  集群容错，主库fail后从库会自动升级为主库<br>
+3.  客户端可以像操作单个实例一样操作redis集群，不需要关心数据分布到哪个实例上<br></p>
+
+<p>缺点：<br>
+1.  不支持需要处理多个键的redis命令，因为这会降低redis的性能<br>
+2.  没有多个db的概念，只有一个默认的db0，也就是不再支持select命令<br>
+3.  从库仅做主库的备份，不支持读写分离<br></p>
+
+<h2>3   RedisCluste架构</h2>
+
+<h3>3.1 RedisCluster架构图</h3>
+
+<p><img src="/images/rediscluster/rediscluster_architecture.jpg" alt="Git Bash" /></p>
+
+<p>架构细节:
+(1)所有的redis节点彼此互联(PING-PONG机制),内部使用二进制协议优化传输速度和带宽.<br>
+(2)节点的fail是通过集群中超过半数的节点检测失效时才生效.<br>
+(3)客户端与redis节点直连,不需要中间proxy层.客户端不需要连接集群所有节点,连接集群中任何一个可用节点即可<br>
+(4)redis-cluster把所有的物理节点映射到[0-16383]slot上,cluster 负责维护node&lt;&ndash;>slot&lt;&ndash;>value<br></p>
+
+<h3>3.2 RedisCluste选举:容错</h3>
+
+<p><img src="/images/rediscluster/rediscluster_failover.jpg" alt="Git Bash" /></p>
+
+<p>(1)整个选举过程是集群中所有master参与,如果半数以上master节点与master节点通信超过(cluster-node-timeout),认为当前master节点挂掉.<br>
+(2):什么时候整个集群不可用(cluster_state:fail)? <br></p>
+
+<pre><code>a:如果集群任意master挂掉,且当前master没有slave.集群进入fail状态,也可以理解成集群的slot映射[0-16383]不完成时进入fail状态.&lt;br&gt;
+b:如果集群超过半数以上master挂掉，无论是否有slave集群进入fail状态.&lt;br&gt;
+</code></pre>
+
+<p>ps:当集群不可用时,所有对集群的操作做都不可用，收到((error) CLUSTERDOWN The cluster is down)错误</p>
+
+<h2>4   安装redis软件包和相应的依赖</h2>
+
+<h3>4.1 安装ruby依赖</h3>
+
+<ol>
+<li>下载源码, <a href="http://www.ruby-lang.org/en/news/2012/02/16/ruby-1-9-3-p125-is-released/">http://www.ruby-lang.org/en/news/2012/02/16/ruby-1-9-3-p125-is-released/</a> <br></li>
+<li>下载yaml-0.1.4.tar.gz, <a href="http://pyyaml.org/wiki/LibYAML">http://pyyaml.org/wiki/LibYAML</a> <br></li>
+<li>解压libyaml,然后编译安装, <br></li>
+</ol>
+
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>./configure  
+</span><span class='line'>make
+</span><span class='line'>make install
+</span><span class='line'>ldconfig</span></code></pre></td></tr></table></div></figure>
+
+
+<ol>
+<li>解压ruby,然后编译安装即可:</li>
+</ol>
+
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>./configure
+</span><span class='line'>make
+</span><span class='line'>make install</span></code></pre></td></tr></table></div></figure>
+
+
+<ol>
+<li>检查是否ok
+<img src="/images/rediscluster/ruby_gem.jpg" alt="Git Bash" /></li>
+</ol>
+
+
+<h3>4.2 安装连接redis的ruby客户端程序gem-redis</h3>
+
+<p>连接redis的ruby客户端程序，集群命令都依赖于包中的ruby脚本。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>在线安装：
+</span><span class='line'>gem install redis –version 3.1.0
+</span><span class='line'>离线安装：
+</span><span class='line'>下载地址：
+</span><span class='line'>http://rubygems.org/gems/redis/versions/3.1.0
+</span><span class='line'>安装命令：
+</span><span class='line'>gem install –l ./redis-3.1.0.gem</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>4.3 安装Redis-3.0.0程序</h3>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>tar -zxvf redis-3.0.0-rc1.tar.gz
+</span><span class='line'>cd redis-3.0.0-rc1
+</span><span class='line'>make</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>5   搭建集群</h2>
+
+<p>默认情况下redis实例是不开启集群模式的，必须手动修改一下配置文件，打开集群的设置之后配置文件关于集群的那一部分如下所示：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>port 7000
+</span><span class='line'>cluster-enabled yes
+</span><span class='line'>cluster-config-file nodes.conf
+</span><span class='line'>cluster-node-timeout 5000
+</span><span class='line'>appendonly yes</span></code></pre></td></tr></table></div></figure>
+
+
+<p>其中nodes.conf是在实例启动的时候自动创建，并在需要的时候自动更新，无需人为创建。</p>
+
+<h3>5.1 在rediscluster目录下创建bin目录</h3>
+
+<p>把安装目录下面的srv目录下的文件复制到bin里面一份，如下所示：
+<img src="/images/rediscluster/1.jpg" alt="Git Bash" /></p>
+
+<h3>5.2 在rediscluster目录下创建7000 7001 7002 7003 7004 7005目录</h3>
+
+<p>目录名称表示端口号，代表不同的实例，然后在每个目录下面都复制一份redis-server和redis.conf
+<img src="/images/rediscluster/2.jpg" alt="Git Bash" /></p>
+
+<p>切换到7000目录：
+<img src="/images/rediscluster/3.jpg" alt="Git Bash" /></p>
+
+<h3>5.3 把redis改成以daemon形式启动</h3>
+
+<p>默认情况下redis是以非daemon形式启动的，这里把它改成以daemon方式启动，只需修改下配置文件即可：
+<img src="/images/rediscluster/4.jpg" alt="Git Bash" /></p>
+
+<h3>5.4 依次启动所有的实例</h3>
+
+<p>启动实例的命令：</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>/data0/dashan/rediscluster/7000/redis-server /data0/dashan/rediscluster/7000/redis.conf
+</span><span class='line'>/data0/dashan/rediscluster/7001/redis-server /data0/dashan/rediscluster/7001/redis.conf
+</span><span class='line'>/data0/dashan/rediscluster/7002/redis-server /data0/dashan/rediscluster/7002/redis.conf
+</span><span class='line'>/data0/dashan/rediscluster/7003/redis-server /data0/dashan/rediscluster/7003/redis.conf
+</span><span class='line'>/data0/dashan/rediscluster/7004/redis-server /data0/dashan/rediscluster/7004/redis.conf
+</span><span class='line'>/data0/dashan/rediscluster/7005/redis-server /data0/dashan/rediscluster/7005/redis.conf</span></code></pre></td></tr></table></div></figure>
+
+
+<p>在10.75.22.202上7002端口被占用，故新增一个端口7006</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>/data0/dashan/rediscluster/7006/redis-server /data0/dashan/rediscluster/7006/redis.conf</span></code></pre></td></tr></table></div></figure>
+
+
+<p>实例运行情况：
+<img src="/images/rediscluster/5.jpg" alt="Git Bash" /></p>
+
+<h3>5.5 构建redis集群</h3>
+
+<p>上面6个redis实例是相互独立的，彼此之间互不影响，可以把它们看为单个redis节点，或者把他们看作是6个小集群，每个集群里面只有一个节点，现在要把它们关联到一块。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>[root@vwolf 7006]# /data0/dashan/rediscluster/bin/redis-trib.rb create --replicas 1 10.75.22.202:7000 10.75.22.202:7001 10.75.22.202:7003 10.75.22.202:7004 10.75.22.202:7005 10.75.22.202:7006
+</span><span class='line'>&gt;&gt;&gt; Creating cluster
+</span><span class='line'>Connecting to node 10.75.22.202:7000: OK
+</span><span class='line'>Connecting to node 10.75.22.202:7001: OK
+</span><span class='line'>Connecting to node 10.75.22.202:7003: OK
+</span><span class='line'>Connecting to node 10.75.22.202:7004: OK
+</span><span class='line'>Connecting to node 10.75.22.202:7005: OK
+</span><span class='line'>Connecting to node 10.75.22.202:7006: OK
+</span><span class='line'>&gt;&gt;&gt; Performing hash slots allocation on 6 nodes...
+</span><span class='line'>Using 3 masters:
+</span><span class='line'>10.75.22.202:7000
+</span><span class='line'>10.75.22.202:7001
+</span><span class='line'>10.75.22.202:7003
+</span><span class='line'>Adding replica 10.75.22.202:7004 to 10.75.22.202:7000
+</span><span class='line'>Adding replica 10.75.22.202:7005 to 10.75.22.202:7001
+</span><span class='line'>Adding replica 10.75.22.202:7006 to 10.75.22.202:7003
+</span><span class='line'>M: 150be26a9a3508663f6751f229df000e0103e4ad 10.75.22.202:7000
+</span><span class='line'>   slots:0-5460 (5461 slots) master
+</span><span class='line'>M: 1e2bcb961eeeb4653b3df242b7c4eccd476d9216 10.75.22.202:7001
+</span><span class='line'>   slots:5461-10922 (5462 slots) master
+</span><span class='line'>M: 4b9858e2cc3b1c788ce91a057db5c5ec5447109f 10.75.22.202:7003
+</span><span class='line'>   slots:10923-16383 (5461 slots) master
+</span><span class='line'>S: d4bbd493d9a060f6dfa36c3426a9b6568cf85ea2 10.75.22.202:7004
+</span><span class='line'>   replicates 150be26a9a3508663f6751f229df000e0103e4ad
+</span><span class='line'>S: 00abe61bcee514e6c3e8babb061862f178b20082 10.75.22.202:7005
+</span><span class='line'>   replicates 1e2bcb961eeeb4653b3df242b7c4eccd476d9216
+</span><span class='line'>S: 76f2a2eb73504d631cd79e7264887e22b69c994c 10.75.22.202:7006
+</span><span class='line'>   replicates 4b9858e2cc3b1c788ce91a057db5c5ec5447109f
+</span><span class='line'>Can I set the above configuration? (type 'yes' to accept): yes
+</span><span class='line'>&gt;&gt;&gt; Nodes configuration updated
+</span><span class='line'>&gt;&gt;&gt; Assign a different config epoch to each node
+</span><span class='line'>&gt;&gt;&gt; Sending CLUSTER MEET messages to join the cluster
+</span><span class='line'>Waiting for the cluster to join......
+</span><span class='line'>&gt;&gt;&gt; Performing Cluster Check (using node 10.75.22.202:7000)
+</span><span class='line'>M: 150be26a9a3508663f6751f229df000e0103e4ad 10.75.22.202:7000
+</span><span class='line'>   slots:0-5460 (5461 slots) master
+</span><span class='line'>M: 1e2bcb961eeeb4653b3df242b7c4eccd476d9216 10.75.22.202:7001
+</span><span class='line'>   slots:5461-10922 (5462 slots) master
+</span><span class='line'>M: 4b9858e2cc3b1c788ce91a057db5c5ec5447109f 10.75.22.202:7003
+</span><span class='line'>   slots:10923-16383 (5461 slots) master
+</span><span class='line'>M: d4bbd493d9a060f6dfa36c3426a9b6568cf85ea2 10.75.22.202:7004
+</span><span class='line'>   slots: (0 slots) master
+</span><span class='line'>   replicates 150be26a9a3508663f6751f229df000e0103e4ad
+</span><span class='line'>M: 00abe61bcee514e6c3e8babb061862f178b20082 10.75.22.202:7005
+</span><span class='line'>   slots: (0 slots) master
+</span><span class='line'>   replicates 1e2bcb961eeeb4653b3df242b7c4eccd476d9216
+</span><span class='line'>M: 76f2a2eb73504d631cd79e7264887e22b69c994c 10.75.22.202:7006
+</span><span class='line'>   slots: (0 slots) master
+</span><span class='line'>   replicates 4b9858e2cc3b1c788ce91a057db5c5ec5447109f
+</span><span class='line'>[OK] All nodes agree about slots configuration.
+</span><span class='line'>&gt;&gt;&gt; Check for open slots...
+</span><span class='line'>&gt;&gt;&gt; Check slots coverage...
+</span><span class='line'>[OK] All 16384 slots covered.</span></code></pre></td></tr></table></div></figure>
+
+
+<p>总共6个实例，前面三个是主库，后面三个是从库，对于rediscluster，最少要有3个主库，这些都是在redis-trib.rb程序里面写死的，感兴趣的可以看一下源码。</p>
+
+<p>现在集群算是构建完成了，可以查看当前集群状态：
+连上集群后执行cluster nodes和cluster info命令，对于redis集群，只要连接上一个实例，相当于整个集群就已经连接上了。
+<img src="/images/rediscluster/6.jpg" alt="Git Bash" /></p>
+
+<h3>5.6 检查集群状态</h3>
+
+<p>调用redis-trib.rb的check子命令
+<img src="/images/rediscluster/7.jpg" alt="Git Bash" /></p>
+
+<h3>5.7 连接集群的客户端</h3>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>现在支持redis集群的客户端还比较少，现在搜集到的有下面这样：
+</span><span class='line'>支持ruby的客户端：
+</span><span class='line'>https://github.com/antirez/redis-rb-cluster
+</span><span class='line'>支持python的客户端：
+</span><span class='line'>https://github.com/Grokzen/redis-py-cluster
+</span><span class='line'>支持java的客户端：
+</span><span class='line'>https://github.com/xetorthio/jedis
+</span><span class='line'>支持C#/.NET/VB的客户端：
+</span><span class='line'>https://github.com/StackExchange/StackExchange.Redis
+</span><span class='line'>命令行连接集群的方法：
+</span><span class='line'>在原来的基础上添加-c参数，如下所示：
+</span><span class='line'>redis-cli –c –h 10.75.22.202 –p 7000</span></code></pre></td></tr></table></div></figure>
+
+
+<p>再次强调，对于集群连接，只要连接上集群中任意一个实例即可，因为集群中各个实例是相互关联的，所以相当于连接上整个集群。</p>
+
+<h2>6   集群常用操作</h2>
+
+<h2>6.1 集群相关命令</h2>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>redis集群相关命令：
+</span><span class='line'>节点
+</span><span class='line'>CLUSTER MEET &lt;ip&gt; &lt;port&gt; 将 ip 和 port
+</span><span class='line'>所指定的节点添加到集群当中，让它成为集群的一份子。
+</span><span class='line'>CLUSTER FORGET &lt;node_id&gt; 从集群中移除 node_id 指定的节点。
+</span><span class='line'>CLUSTER REPLICATE &lt;node_id&gt; 将当前节点设置为 node_id 指定的节点的从节点。
+</span><span class='line'>CLUSTER SAVECONFIG 将节点的配置文件保存到硬盘里面。
+</span><span class='line'>槽(slot)
+</span><span class='line'>CLUSTER ADDSLOTS &lt;slot&gt; [slot ...]
+</span><span class='line'>将一个或多个槽（slot）指派（assign）给当前节点。
+</span><span class='line'>CLUSTER DELSLOTS &lt;slot&gt; [slot ...] 移除一个或多个槽对当前节点的指派。
+</span><span class='line'>CLUSTER FLUSHSLOTS
+</span><span class='line'>移除指派给当前节点的所有槽，让当前节点变成一个没有指派任何槽的节点。
+</span><span class='line'>CLUSTER SETSLOT &lt;slot&gt; NODE &lt;node_id&gt; 将槽 slot 指派给 node_id
+</span><span class='line'>指定的节点，如果槽已经指派给另一个节点，那么先让另一个节点删除该槽&gt;，
+</span><span class='line'>然后再进行指派。
+</span><span class='line'>CLUSTER SETSLOT &lt;slot&gt; MIGRATING &lt;node_id&gt; 将本节点的槽 slot 迁移到 node_id
+</span><span class='line'>指定的节点中。
+</span><span class='line'>CLUSTER SETSLOT &lt;slot&gt; IMPORTING &lt;node_id&gt; 从 node_id 指定的节点中导入槽 slot
+</span><span class='line'>到本节点。
+</span><span class='line'>CLUSTER SETSLOT &lt;slot&gt; STABLE 取消对槽 slot
+</span><span class='line'>的导入（import）或者迁移（migrate）。
+</span><span class='line'>键
+</span><span class='line'>CLUSTER KEYSLOT &lt;key&gt; 计算键 key 应该被放置在哪个槽上。
+</span><span class='line'>CLUSTER COUNTKEYSINSLOT &lt;slot&gt; 返回槽 slot 目前包含的键值对数量。
+</span><span class='line'>CLUSTER GETKEYSINSLOT &lt;slot&gt; &lt;count&gt; 返回 count 个 slot 槽中的键。</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>6.2 在命令行操作rediscluster</h3>
+
+<p>集群连接上之后对它进行set或get操作，会根据key的值把它分布到不同的实例上面，具体分布方法为：
+CRC16(key) % 16384
+执行set或get操作时如果key分布到其他实例上，会自动Redirected过去，如下所示：
+<img src="/images/rediscluster/8.pnp" alt="Git Bash" /></p>
+
+<h3>6.3 使用连接rediscluster的ruby客户端往rediscluster里面灌一批数据</h3>
+
+<p>执行ruby ./example.rb命令
+<img src="/images/rediscluster/9.jpg" alt="Git Bash" /></p>
+
+<h3>6.4 在线分片操作</h3>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'># ./redis-trib.rb reshard 127.0.0.1:7000</span></code></pre></td></tr></table></div></figure>
+
+
+<p>你只需要指定集群中其中一个节点的地址，redis-trib.rb 就会自动找到集群中的其他节点。
+<img src="/images/rediscluster/10.jpg" alt="Git Bash" /></p>
+
+<p>依次输入需要移动的槽的个数，接收槽的redis实例对应的nodeid，这些槽的来源，如果来自其他所有的实例，这里输入all，如果来自个别实例，这里输入实例对应的nodeid，然后输入done.</p>
+
+<p>在线分片完成后可看到7000实例前后对比情况，如下所示：
+<img src="/images/rediscluster/11.jpg" alt="Git Bash" /></p>
+
+<p>6.5 添加master节点
+首先像其他实例一样，分好端口和配置，把节点启动起来，以10.75.22.202:7007为例
+然后使用redis-trib.rb程序，参数为add-node</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>./redis-trib.rb add-node 10.75.22.202:7007 10.75.22.202:7000</span></code></pre></td></tr></table></div></figure>
+
+
+<p>10.75.22.202:7007表示刚才启起来的节点
+10.75.22.202:7000表示集群中任意一个实例</p>
+
+<p>新节点添加完成后里面并没有数据，因为没有为新节点分配槽数，分配方法类似于上面的“在线分片”操作。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>redis-trib.rb reshard 10.75.22.202:7000     
+</span><span class='line'>#根据提示选择要迁移的slot数量(ps:这里选择1000)     
+</span><span class='line'>How many slots do you want to move (from 1 to 16384)? 1000     
+</span><span class='line'>#选择要接受这些slot的node-id     
+</span><span class='line'>What is the receiving node ID? 150be26a9a3508663f6751f229df000e0103e4ad
+</span><span class='line'>#选择slot来源:     
+</span><span class='line'>#all表示从所有的master重新分配，     
+</span><span class='line'>#或者数据要提取slot的master节点id,最后用done结束     
+</span><span class='line'>Please enter all the source node IDs.     
+</span><span class='line'>Type 'all' to use all the nodes as source nodes for the hash slots.        
+</span><span class='line'>Type 'done' once you entered all the source nodes IDs.        
+</span><span class='line'>Source node #1:all      
+</span><span class='line'>#打印被移动的slot后，输入yes开始移动slot以及对应的数据.       
+</span><span class='line'>#Do you want to proceed with the proposed reshard plan (yes/no)? yes      
+</span><span class='line'>#结束       
+</span><span class='line'>6.6 添加slave节点
+</span><span class='line'>其他类似，命令改成下面改样：
+</span><span class='line'>./redis-trib.rb add-node --slave 10.75.22.202:7007 10.75.22.202:7000
+</span><span class='line'>执行成功后，7007将作为7000的从库。
+</span><span class='line'>或者用另外一种方法：
+</span><span class='line'>新节点创建成功后，用redis-cli连接上新节点，然后执行下面的命令：
+</span><span class='line'>redis 10.75.22.202:7007&gt; cluster replicate 150be26a9a3508663f6751f229df000e0103e4ad
+</span><span class='line'>其中150be26a9a3508663f6751f229df000e0103e4ad表示7000端口实例对应的nodeid,这样新建的7007实例将作为7000实例的从库。</span></code></pre></td></tr></table></div></figure>
+
+
+<p>6.7 删除一个slave节点</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>redis-trib.rb del-node ip:port nodeid
+</span><span class='line'>示例：
+</span><span class='line'>./redis-trib.rb del-node 10.75.22.202:7004 d4bbd493d9a060f6dfa36c3426a9b6568cf85ea2</span></code></pre></td></tr></table></div></figure>
+
+
+<p>6.8 删除一个master节点</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>删除master节点之前首先要使用reshard移除master的全部slot,然后再删除当前节点(目前只能把被删除master的slot迁移到一个节点上)
+</span><span class='line'>#把10.75.22.202:7001当前master迁移到10.75.22.202:7000上     
+</span><span class='line'>redis-trib.rb reshard 10.75.22.202:7000
+</span><span class='line'>#根据提示选择要迁移的slot数量(ps:这里选择4960)     
+</span><span class='line'>How many slots do you want to move (from 1 to 16384)? 4960(被删除master的所有slot数量)     
+</span><span class='line'>#选择要接受这些slot的node-id(10.75.22.202:7000)     
+</span><span class='line'>What is the receiving node ID? 150be26a9a3508663f6751f229df000e0103e4ad (ps:10.75.22.202:7000的node-id)     
+</span><span class='line'>Please enter all the source node IDs.     
+</span><span class='line'>Type 'all' to use all the nodes as source nodes for the hash slots.       
+</span><span class='line'>Type 'done' once you entered all the source nodes IDs.       
+</span><span class='line'>Source node #1:1e2bcb961eeeb4653b3df242b7c4eccd476d9216(被删除master的node-id)      
+</span><span class='line'>Source node #2:done      
+</span><span class='line'>#打印被移动的slot后，输入yes开始移动slot以及对应的数据.       
+</span><span class='line'>#Do you want to proceed with the proposed reshard plan (yes/no)? yes      
+</span><span class='line'>
+</span><span class='line'>上述操作执行成功后，master节点上面已经没有数据了，这时候可以像删除slave节点一样删除master节点：
+</span><span class='line'>./redis-trib.rb del-node 10.75.22.202:7001 1e2bcb961eeeb4653b3df242b7c4eccd476d9216</span></code></pre></td></tr></table></div></figure>
+
+
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">yindashan</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-11-02T11:40:59+08:00" pubdate data-updated="true">Nov 2<sup>nd</sup>, 2014</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/redis/'>redis</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  
+  
+  
+    <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style_32x32">
+	<a class="jiathis_button_qzone"></a>
+	<a class="jiathis_button_tsina"></a>
+	<a class="jiathis_button_tqq"></a>
+	<a class="jiathis_button_weixin"></a>
+	<a class="jiathis_button_renren"></a>
+	<a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+	<a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" src="http://v3.jiathis.com/code/jia.js?uid=1395155901683607" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+<!-- UY BEGIN -->
+<div id="uyan_frame"></div>
+<script type="text/javascript" src="http://v2.uyan.cc/code/uyan.js"></script>
+<!-- UY END -->
+ 
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/10/27/pythonzhong-dai-ma-feng-ge-de-gai-bian-he-xiang-ying-de-xing-neng-you-hua/" title="Previous Post: Python中代码风格的改变和相应的性能优化">&laquo; Python中代码风格的改变和相应的性能优化</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>文章类别</h1>
+    <ul id="category-list"><li><a href='/blog/categories/octopress'>octopress (2)</a></li><li><a href='/blog/categories/python'>python (4)</a></li><li><a href='/blog/categories/redis'>redis (1)</a></li><li><a href='/blog/categories/ce-shi'>测试 (3)</a></li><li><a href='/blog/categories/sheng-huo'>生活 (1)</a></li></ul>
+</section>
+<section>
+    <h1>标签云</h1>
+    <ul class="tag-cloud">
+        <a style="font-size: 100%" href="/tags/github/">Github</a>
+<a style="font-size: 100%" href="/tags/linux/">Linux</a>
+<a style="font-size: 100%" href="/tags/thinking/">Thinking</a>
+<a style="font-size: 100%" href="/tags/jekyll/">jekyll</a>
+<a style="font-size: 100%" href="/tags/tag-test/">tag_test</a>
+<a style="font-size: 210%" href="/tags/test/">test</a>
+
+    </ul>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/11/02/redisclusterda-jian-jiao-cheng/">RedisCluster搭建教程</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/27/pythonzhong-dai-ma-feng-ge-de-gai-bian-he-xiang-ying-de-xing-neng-you-hua/">Python中代码风格的改变和相应的性能优化</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/26/pythonzhong-fan-she-he-zi-sheng/">Python中反射和自省</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/25/pythonzhong-json-pickle-cpicklezai-xu-lie-hua-shi-de-dui-bi/">Python中json_pickle_cPickle在序列化时的性能对比</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/10/24/pythonzhong-zhuang-shi-qi-xiang-jie/">Python中装饰器详解</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/yindashan">@yindashan</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'yindashan',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - yindashan -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>
