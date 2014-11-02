@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Redis | Hello World]]></title>
   <link href="http://yindashan.github.io/blog/categories/redis/atom.xml" rel="self"/>
   <link href="http://yindashan.github.io/"/>
-  <updated>2014-11-02T12:44:24+08:00</updated>
+  <updated>2014-11-02T12:54:53+08:00</updated>
   <id>http://yindashan.github.io/</id>
   <author>
     <name><![CDATA[yindashan]]></name>
@@ -67,26 +67,21 @@ b:如果集群超过半数以上master挂掉，无论是否有slave集群进入f
 
 <h3>4.1 安装ruby依赖</h3>
 
-<ol>
-<li>下载源码, <a href="http://www.ruby-lang.org/en/news/2012/02/16/ruby-1-9-3-p125-is-released/">http://www.ruby-lang.org/en/news/2012/02/16/ruby-1-9-3-p125-is-released/</a> <br></li>
-<li>下载yaml-0.1.4.tar.gz, <a href="http://pyyaml.org/wiki/LibYAML">http://pyyaml.org/wiki/LibYAML</a> <br></li>
-<li>解压libyaml,然后编译安装, <br>
-<code>
+<p><code>
+1. 下载源码, http://www.ruby-lang.org/en/news/2012/02/16/ruby-1-9-3-p125-is-released/ &lt;br&gt;
+2. 下载yaml-0.1.4.tar.gz, http://pyyaml.org/wiki/LibYAML &lt;br&gt;
+3. 解压libyaml,然后编译安装, &lt;br&gt;
 ./configure  
 make
 make install
 ldconfig
-</code></li>
-<li>解压ruby,然后编译安装即可:
-<code>
+4. 解压ruby,然后编译安装即可:
 ./configure
 make
 make install
-</code></li>
-<li>检查是否ok
-<img src="/images/rediscluster/ruby_gem.jpg" alt="Git Bash" /></li>
-</ol>
-
+5. 检查是否ok
+</code>
+<img src="/images/rediscluster/0.jpg" alt="Git Bash" /></p>
 
 <h3>4.2 安装连接redis的ruby客户端程序gem-redis</h3>
 
@@ -131,7 +126,10 @@ appendonly yes
 <p>目录名称表示端口号，代表不同的实例，然后在每个目录下面都复制一份redis-server和redis.conf
 <img src="/images/rediscluster/2.jpg" alt="Git Bash" /></p>
 
-<p>切换到7000目录：
+<br>
+
+
+<p>切换到7000目录：<br>
 <img src="/images/rediscluster/3.jpg" alt="Git Bash" /></p>
 
 <h3>5.3 把redis改成以daemon形式启动</h3>
@@ -282,8 +280,8 @@ CLUSTER GETKEYSINSLOT &lt;slot&gt; &lt;count&gt; 返回 count 个 slot 槽中的
 
 <p>集群连接上之后对它进行set或get操作，会根据key的值把它分布到不同的实例上面，具体分布方法为：
 CRC16(key) % 16384
-执行set或get操作时如果key分布到其他实例上，会自动Redirected过去，如下所示：
-<img src="/images/rediscluster/8.pnp" alt="Git Bash" /></p>
+执行set或get操作时如果key分布到其他实例上，会自动Redirected过去，如下所示：<br>
+<img src="/images/rediscluster/8.jpg" alt="Git Bash" /></p>
 
 <h3>6.3 使用连接rediscluster的ruby客户端往rediscluster里面灌一批数据</h3>
 

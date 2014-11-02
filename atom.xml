@@ -4,7 +4,7 @@
   <title><![CDATA[Hello World]]></title>
   <link href="http://yindashan.github.io/atom.xml" rel="self"/>
   <link href="http://yindashan.github.io/"/>
-  <updated>2014-11-02T12:44:24+08:00</updated>
+  <updated>2014-11-02T12:54:53+08:00</updated>
   <id>http://yindashan.github.io/</id>
   <author>
     <name><![CDATA[yindashan]]></name>
@@ -67,41 +67,33 @@ b:如果集群超过半数以上master挂掉，无论是否有slave集群进入f
 
 <h3>4.1 安装ruby依赖</h3>
 
-<ol>
-<li>下载源码, <a href="http://www.ruby-lang.org/en/news/2012/02/16/ruby-1-9-3-p125-is-released/">http://www.ruby-lang.org/en/news/2012/02/16/ruby-1-9-3-p125-is-released/</a> <br></li>
-<li>下载yaml-0.1.4.tar.gz, <a href="http://pyyaml.org/wiki/LibYAML">http://pyyaml.org/wiki/LibYAML</a> <br></li>
-<li>解压libyaml,然后编译安装, <br></li>
-</ol>
-
-
 <figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
 <span class='line-number'>3</span>
 <span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>./configure  
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>1. 下载源码, http://www.ruby-lang.org/en/news/2012/02/16/ruby-1-9-3-p125-is-released/ &lt;br&gt;
+</span><span class='line'>2. 下载yaml-0.1.4.tar.gz, http://pyyaml.org/wiki/LibYAML &lt;br&gt;
+</span><span class='line'>3. 解压libyaml,然后编译安装, &lt;br&gt;
+</span><span class='line'>./configure  
 </span><span class='line'>make
 </span><span class='line'>make install
-</span><span class='line'>ldconfig</span></code></pre></td></tr></table></div></figure>
-
-
-<ol>
-<li>解压ruby,然后编译安装即可:</li>
-</ol>
-
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>./configure
+</span><span class='line'>ldconfig
+</span><span class='line'>4. 解压ruby,然后编译安装即可: 
+</span><span class='line'>./configure
 </span><span class='line'>make
-</span><span class='line'>make install</span></code></pre></td></tr></table></div></figure>
+</span><span class='line'>make install
+</span><span class='line'>5. 检查是否ok </span></code></pre></td></tr></table></div></figure>
 
 
-<ol>
-<li>检查是否ok
-<img src="http://yindashan.github.io/images/rediscluster/ruby_gem.jpg" alt="Git Bash" /></li>
-</ol>
-
+<p><img src="http://yindashan.github.io/images/rediscluster/0.jpg" alt="Git Bash" /></p>
 
 <h3>4.2 安装连接redis的ruby客户端程序gem-redis</h3>
 
@@ -161,7 +153,10 @@ b:如果集群超过半数以上master挂掉，无论是否有slave集群进入f
 <p>目录名称表示端口号，代表不同的实例，然后在每个目录下面都复制一份redis-server和redis.conf
 <img src="http://yindashan.github.io/images/rediscluster/2.jpg" alt="Git Bash" /></p>
 
-<p>切换到7000目录：
+<br>
+
+
+<p>切换到7000目录：<br>
 <img src="http://yindashan.github.io/images/rediscluster/3.jpg" alt="Git Bash" /></p>
 
 <h3>5.3 把redis改成以daemon形式启动</h3>
@@ -411,8 +406,8 @@ b:如果集群超过半数以上master挂掉，无论是否有slave集群进入f
 
 <p>集群连接上之后对它进行set或get操作，会根据key的值把它分布到不同的实例上面，具体分布方法为：
 CRC16(key) % 16384
-执行set或get操作时如果key分布到其他实例上，会自动Redirected过去，如下所示：
-<img src="http://yindashan.github.io/images/rediscluster/8.pnp" alt="Git Bash" /></p>
+执行set或get操作时如果key分布到其他实例上，会自动Redirected过去，如下所示：<br>
+<img src="http://yindashan.github.io/images/rediscluster/8.jpg" alt="Git Bash" /></p>
 
 <h3>6.3 使用连接rediscluster的ruby客户端往rediscluster里面灌一批数据</h3>
 
