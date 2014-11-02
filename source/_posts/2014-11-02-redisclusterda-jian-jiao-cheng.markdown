@@ -45,23 +45,21 @@ ps:当集群不可用时,所有对集群的操作做都不可用，收到((error
 
 ##4   安装redis软件包和相应的依赖
 ###4.1 安装ruby依赖
+```
 1. 下载源码, http://www.ruby-lang.org/en/news/2012/02/16/ruby-1-9-3-p125-is-released/ <br>
 2. 下载yaml-0.1.4.tar.gz, http://pyyaml.org/wiki/LibYAML <br>
 3. 解压libyaml,然后编译安装, <br>
-```
 ./configure  
 make
 make install
 ldconfig
-```
 4. 解压ruby,然后编译安装即可: 
-```
 ./configure
 make
 make install
-```
 5. 检查是否ok 
-![Git Bash](/images/rediscluster/ruby_gem.jpg)
+```
+![Git Bash](/images/rediscluster/0.jpg)
 
 
 ###4.2 安装连接redis的ruby客户端程序gem-redis
@@ -100,8 +98,8 @@ appendonly yes
 ###5.2 在rediscluster目录下创建7000 7001 7002 7003 7004 7005目录
 目录名称表示端口号，代表不同的实例，然后在每个目录下面都复制一份redis-server和redis.conf
 ![Git Bash](/images/rediscluster/2.jpg)
-
-切换到7000目录：
+<br>
+切换到7000目录：<br>
 ![Git Bash](/images/rediscluster/3.jpg)
 
 ###5.3 把redis改成以daemon形式启动
@@ -242,8 +240,8 @@ CLUSTER GETKEYSINSLOT <slot> <count> 返回 count 个 slot 槽中的键。
 ###6.2 在命令行操作rediscluster
 集群连接上之后对它进行set或get操作，会根据key的值把它分布到不同的实例上面，具体分布方法为：
 CRC16(key) % 16384
-执行set或get操作时如果key分布到其他实例上，会自动Redirected过去，如下所示：
-![Git Bash](/images/rediscluster/8.pnp)
+执行set或get操作时如果key分布到其他实例上，会自动Redirected过去，如下所示：<br>
+![Git Bash](/images/rediscluster/8.jpg)
 
 ###6.3 使用连接rediscluster的ruby客户端往rediscluster里面灌一批数据
 执行ruby ./example.rb命令
